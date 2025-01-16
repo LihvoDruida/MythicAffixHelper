@@ -5,40 +5,38 @@ local affixDescLookup = MythicAffixHelper.affixDescLookup
 local affixBuffLookup = MythicAffixHelper.affixBuffLookup
 
 -- Define the special values for the affix numbers
-local specialAffixNumbers = { "+2", "+4", "+7", "+10", "+12" }
+local specialAffixNumbers = { "2", "4", "7", "10", "12" }
 
--- Function to add additional tooltip information
-local function AddAffixTooltipInfo(self, index)
-    if not self.affixID then return end
+-- Function to add a frame below the affix with an icon and text
+local function AddAffixIconWithText(affix, index)
+    if not affix or not affix.affixID then return end
 
-    local name, description = C_ChallengeMode.GetAffixInfo(self.affixID)
-    if not name or not description then return end
+    -- Only create the overlay frame if it doesn't already exist
+    if not affix.iconOverlay then
+        -- Create a frame for the icon
+        affix.iconOverlay = CreateFrame("Frame", nil, affix, "BackdropTemplate")
+        affix.iconOverlay:SetSize(30, 30) -- Set size of the icon
+        affix.iconOverlay:SetPoint("BOTTOM", affix, "BOTTOM", 0, -13) -- Position below the affix
 
-    -- Use the special number for the affix
-    local affixNumber = specialAffixNumbers[index] or ""  -- Default to "+0" if index is greater than 5
-    local affixName = format("%s %s", affixNumber, name)
+        -- Add the background texture
+        local texture = affix.iconOverlay:CreateTexture(nil, "BACKGROUND")
+        texture:SetTexture("Interface\\AddOns\\MythicAffixHelper\\media\\textures\\icons\\mplus")
+        texture:SetAllPoints(affix.iconOverlay) -- Fill the frame
+        affix.iconOverlay.texture = texture
 
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(affixName, 1, 1, 1, 1, true)
-    GameTooltip:AddLine(description, nil, nil, nil, true)
-
-    local spellID = affixBuffLookup[self.affixID]
-    local affixDesc = affixDescLookup[self.affixID]
-
-    if spellID then
-        local spellLink = C_Spell.GetSpellLink(spellID)
-        local spellDescription = C_Spell.GetSpellDescription(spellID)
-        if spellLink and spellDescription then
-            GameTooltip:AddLine(" ", 1, 1, 1)
-            GameTooltip:AddLine("Info:", 1, 0.8, 0)
-            GameTooltip:AddLine(affixDesc, 0.9, 0.9, 0.9, true)
-            GameTooltip:AddLine(" ", 1, 1, 1)
-            GameTooltip:AddLine("Buff:", 1, 0.8, 0)
-            GameTooltip:AddLine(spellDescription, 0.9, 0.9, 0.9, true)
-        end
+        -- Add the text overlay
+        local text = affix.iconOverlay:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        text:SetPoint("CENTER", affix.iconOverlay, "CENTER", 2, 0) -- Center the text
+        text:SetTextColor(1, 1, 1, 1) -- White color
+        affix.iconOverlay.text = text
     end
 
-    GameTooltip:Show()
+-- Update text size and content with bold text
+local fontName, _, fontFlags = affix.iconOverlay.text:GetFont()
+affix.iconOverlay.text:SetFont(fontName, 11, fontFlags .. " OUTLINE") -- Use "OUTLINE" for bold effect (or "BOLD")
+affix.iconOverlay.text:SetText(specialAffixNumbers[index] or "") -- Set the appropriate text for the affix
+affix.iconOverlay:Show()
+
 end
 
 -- Function to add the "!" icon overlay on affix icons with a smoother wobble animation
@@ -99,6 +97,41 @@ local function AddWarningOverlay(affix)
     end
 end
 
+-- Function to add additional tooltip information
+local function AddAffixTooltipInfo(self, index)
+    if not self.affixID then return end
+
+    local name, description = C_ChallengeMode.GetAffixInfo(self.affixID)
+    if not name or not description then return end
+
+    -- Use the special number for the affix
+    local affixNumber = specialAffixNumbers[index] or "" -- Default to "" if index is greater than 5
+    local affixName = format("+%s %s", affixNumber, name)
+
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(affixName, 1, 1, 1, 1, true)
+    GameTooltip:AddLine(description, nil, nil, nil, true)
+
+    local spellID = affixBuffLookup[self.affixID]
+    local affixDesc = affixDescLookup[self.affixID]
+
+    if spellID then
+        local spellLink = C_Spell.GetSpellLink(spellID)
+        local spellDescription = C_Spell.GetSpellDescription(spellID)
+        if spellLink and spellDescription then
+            GameTooltip:AddLine(" ", 1, 1, 1)
+            GameTooltip:AddLine("Info:", 1, 0.8, 0)
+            GameTooltip:AddLine(affixDesc, 0.9, 0.9, 0.9, true)
+            GameTooltip:AddLine(" ", 1, 1, 1)
+            GameTooltip:AddLine("Buff:", 1, 0.8, 0)
+            GameTooltip:AddLine(spellDescription, 0.9, 0.9, 0.9, true)
+        end
+    end
+
+    GameTooltip:Show()
+end
+
+
 -- Hook the tooltip display
 function addon.HookAffixOnEnter()
     local affixesContainer = ChallengesFrame.WeeklyInfo 
@@ -108,12 +141,15 @@ function addon.HookAffixOnEnter()
     if affixesContainer and affixesContainer.Affixes then
         for index, affix in ipairs(affixesContainer.Affixes) do
             if affix and affix.OnEnter then
+                -- Add icon with text below the affix
+                AddAffixIconWithText(affix, index)
+
                 -- Add overlay "!" to the affix icon
                 AddWarningOverlay(affix)
 
                 -- Hook the tooltip display
                 affix:HookScript("OnEnter", function(self)
-                    AddAffixTooltipInfo(self, index)  -- Pass the index to display the affix number
+                    AddAffixTooltipInfo(self, index) -- Pass the index to display the affix number
                 end)
             end
         end
