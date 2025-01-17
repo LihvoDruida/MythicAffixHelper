@@ -117,13 +117,25 @@ local function AddAffixTooltipInfo(self, index)
 
     if spellID then
         local spellLink = C_Spell.GetSpellLink(spellID)
+        local spellInfo = C_Spell.GetSpellInfo(spellID)
         local spellDescription = C_Spell.GetSpellDescription(spellID)
+
+        local iconWidth, iconHeight = 16, 16
+        local spellName = spellInfo.name or "Unknown Spell"
+        local spellIcon = spellInfo.iconID 
+        local spellIconMarkup = "|T" .. spellIcon .. ":" .. iconWidth .. ":" .. iconHeight .. ":0:0|t"
+
         if spellLink and spellDescription then
             GameTooltip:AddLine(" ", 1, 1, 1)
             GameTooltip:AddLine("Info:", 1, 0.8, 0)
             GameTooltip:AddLine(affixDesc, 0.9, 0.9, 0.9, true)
             GameTooltip:AddLine(" ", 1, 1, 1)
             GameTooltip:AddLine("Buff:", 1, 0.8, 0)
+            if spellName and spellIcon then
+                -- Додаємо до тултіпа
+                GameTooltip:AddLine(spellIconMarkup .. " [" .. spellName .. "]", 1, 0.8, 0, true)
+
+            end
             GameTooltip:AddLine(spellDescription, 0.9, 0.9, 0.9, true)
         end
     end
